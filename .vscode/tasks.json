@@ -1,0 +1,79 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Init SSH Agent",
+            "type": "shell",
+            "command": "if [ -z \"$SSH_AUTH_SOCK\" ]; then eval $(ssh-agent -s); fi && ssh-add -l || ssh-add ~/.ssh/id_rsa_box",
+            "problemMatcher": [],
+            "detail": "Starts the SSH agent if it is not running and adds the SSH key if it is not loaded."
+        },
+        {
+            "label": "Update & Upgrade Remote Server",
+            "type": "shell",
+            "dependsOn": "Init SSH Agent",
+            "command": "source server_config.env && ssh -t $SSH_USER@${input:serverIp} 'sudo apt-get update && sudo apt-get upgrade -y'",
+            "problemMatcher": [],
+            "detail": "Updates and upgrades the remote server via SSH.",
+            "inputs": [
+                {
+                    "id": "serverIp",
+                    "type": "promptString",
+                    "description": "Enter the server IP address or hostname"
+                }
+            ]
+        },
+        {
+            "label": "Update Mail-in-a-Box",
+            "type": "shell",
+            "dependsOn": "Init SSH Agent",
+            "command": "source server_config.env && ssh -t $SSH_USER@${input:serverIp} 'bash -c \"curl -s https://mailinabox.email/setup.sh | sudo bash\"'",
+            "problemMatcher": [],
+            "detail": "Runs the Mail-in-a-Box setup script on the remote server.",
+            "inputs": [
+                {
+                    "id": "serverIp",
+                    "type": "promptString",
+                    "description": "Enter the server IP address or hostname"
+                }
+            ]
+        },
+        {
+            "label": "Reboot Remote Server",
+            "type": "shell",
+            "dependsOn": "Init SSH Agent",
+            "command": "source server_config.env && ssh -t $SSH_USER@${input:serverIp} 'sudo reboot'",
+            "problemMatcher": [],
+            "detail": "Reboots the remote server via SSH.",
+            "inputs": [
+                {
+                    "id": "serverIp",
+                    "type": "promptString",
+                    "description": "Enter the server IP address or hostname"
+                }
+            ]
+        },
+        {
+            "label": "Sync Mail-in-a-Box Backup",
+            "type": "shell",
+            "dependsOn": "Init SSH Agent",
+            "command": "source server_config.env && mkdir -p backups/mailinabox/${input:serverIp} && rsync -avz --delete $SSH_USER@${input:serverIp}:/home/user-data/backup/ backups/mailinabox/${input:serverIp}/",
+            "problemMatcher": [],
+            "detail": "Syncs the Mail-in-a-Box backup directory from the remote server to a local directory, creating a separate directory for each server.",
+            "inputs": [
+                {
+                    "id": "serverIp",
+                    "type": "promptString",
+                    "description": "Enter the server IP address or hostname"
+                }
+            ]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "serverIp",
+            "type": "promptString",
+            "description": "Enter the server IP address or hostname"
+        }
+    ]
+}
